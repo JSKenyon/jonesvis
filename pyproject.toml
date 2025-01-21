@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "jonesvis"
+version = "0.0.0"
+description = "Visualiser for Jones terms and their effects."
+repository = "https://github.com/JSKenyon/jonesvis"
+# documentation = "https://quartical.readthedocs.io"
+authors = ["Jonathan Kenyon <jonathan.simon.kenyon@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy"
+]
+include = []
+
+[tool.poetry.dependencies]
+python = ">=3.10, <3.13"
+hvplot = ">=0.11.2"
+dask-ms = {extras = ["xarray", "zarr"], version = ">=0.2.23"}
+typer = ">=0.15.1"
+datashader = ">=0.16.3"
+dask = {extras = ["dataframe"], version = ">=2024.10.0"}
+ducc0 = ">= 0.36.0"
+
+[tool.poetry.scripts]
+jonesvis = 'jonesvis.main:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
