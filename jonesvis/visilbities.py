@@ -13,6 +13,7 @@ from jonesvis.utils.gridding import (
     grid_weights,
     imaging_weights,
 )
+from jonesvis.utils.gains import nb_apply_gains
 
 from timedec import timedec
 
@@ -59,7 +60,7 @@ class Visibilities(object):
             self.dims["corr"]
         )
 
-        self.pix_x, self.pix_y = 1024, 1024
+        self.pix_x, self.pix_y = 512, 512
         self.cell_x, self.cell_y = 2.5e-6, 2.5e-6
 
         weights = np.ones(self.dataset.DATA.values.shape, dtype=np.float64)
@@ -97,10 +98,20 @@ class Visibilities(object):
 
     def apply_gains(self, gains):
 
+        # TODO: Overwrite visibility values.
+        self.dataset.DATA.values[:] = 1
+
         # Assume full resolution gains.
+        nb_apply_gains(
+            self.dataset.DATA.values,
+            gains,
+            self.dataset.ANTENNA1.values,
+            self.dataset.ANTENNA2.values,
+            np.unique(self.dataset.TIME.values, return_inverse=True)[1]
+        )
 
-        return
-
+        # Update the visibilities.
+        self.stokes_vis = vis_to_stokes_vis(self.dataset.DATA.values)
 
     def grid(self, pol="I"):
 
@@ -113,7 +124,7 @@ class Visibilities(object):
             npix_y=self.pix_y,
             pixsize_x=self.cell_x,
             pixsize_y=self.cell_y,
-            epsilon=float(1e-5),
+            epsilon=float(1e-4),
             divide_by_n=True,
             do_wgridding=False,
             nthreads=1

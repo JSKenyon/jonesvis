@@ -8,6 +8,8 @@ from holoviews.operation.datashader import datashade
 import param
 import panel as pn
 
+from jonesvis.utils.math import kron_matvec
+
 pn.config.throttled = True  # Throttle all sliders.
 
 hv.extension('bokeh', width="stretch_both")
@@ -24,6 +26,20 @@ class Gain(param.Parameterized):
         label="vmax",
         default=1
     )
+
+    length_scale_time = param.Number(
+        label="Length Scale (Time)",
+        bounds=(0, 1),
+        step=0.05,
+        default=0.25
+    )
+    length_scale_freq = param.Number(
+        label="Length Scale (Frequency)",
+        bounds=(0, 1),
+        step=0.05,
+        default=0.1
+    )
+
     # Set the bounds during the init step.
     rasterize_when = param.Integer(
         label="Rasterize Limit",
@@ -60,9 +76,9 @@ class Gain(param.Parameterized):
         label='SAVE FLAGS'
     )
 
-    _selection_parameters = [
-        "x_axis",
-        "y_axis",
+    _gain_parameters = [
+        "length_scale_time",
+        "length_scale_freq",
     ]
 
     _display_parameters = [
@@ -193,9 +209,47 @@ class Gain(param.Parameterized):
     # def current_axes(self):
     #     return [self.x_axis, self.y_axis]
 
+    @property
+    def gains(self):
+
+        freqs = self.freqs
+        times = self.times
+        ntime = times.size
+        nchan = freqs.size
+        nant = self.n_ant
+
+        rng = np.random.default_rng(12345)  # Set seed.
+
+        t = (times - times.min()) / (times.max() - times.min())
+        nu = 2.5 * (freqs / freqs.mean() - 1.0)
+
+        tt = np.abs(t[:, None] - t[None, :])
+        lt = self.length_scale_time
+        Kt = 0.1 * np.exp(-tt**2/(2*lt**2))
+        Lt = np.linalg.cholesky(Kt + 1e-10*np.eye(ntime))
+        vv = np.abs(nu[:, None] - nu[None, :])
+        lv = self.length_scale_freq
+        Kv = 0.1 * np.exp(-vv**2/(2*lv**2))
+        Lv = np.linalg.cholesky(Kv + 1e-10*np.eye(nchan))
+        L = (Lt, Lv)
+
+        jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
+        for p in range(nant):
+            for c in [0, -1]:  # for now only diagonal
+                xi_amp = rng.standard_normal(size=(ntime, nchan))
+                amp = np.exp(-nu[None, :]**2 + kron_matvec(L, xi_amp))
+                xi_phase = rng.standard_normal(size=(ntime, nchan))
+                phase = kron_matvec(L, xi_phase)
+                jones[:, :, p, 0, c] = amp * np.exp(1.0j * phase)
+
+        return jones
+
+
     def update_image(self):
 
         pn.state.log(f'Plot update triggered.')
+
+        self.vis.apply_gains(self.gains)
 
         plots = []
 
@@ -209,7 +263,8 @@ class Gain(param.Parameterized):
                     clim=(self.vmin, self.vmax),
                     title=pol,
                     colorbar=True,
-                    cmap="inferno"
+                    cmap="inferno",
+                    aspect="square"
                 )
             )
 
@@ -289,8 +344,8 @@ class Gain(param.Parameterized):
 
         selection_widgets = pn.Param(
             self.param,
-            parameters=self._selection_parameters,
-            name="SELECTION",
+            parameters=self._gain_parameters,
+            name="JONES",
             widgets=widget_opts
         )
 
