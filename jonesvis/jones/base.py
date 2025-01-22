@@ -197,9 +197,23 @@ class Gain(param.Parameterized):
 
         pn.state.log(f'Plot update triggered.')
 
-        img = self.vis.grid()
+        plots = []
 
-        return hv.Image(img).opts(responsive=True, clim=(self.vmin, self.vmax))
+        for pol in "IQUV":
+            image_data = self.vis.grid(pol)
+            plots.append(
+                hv.Image(
+                    image_data
+                ).opts(
+                    responsive=True,
+                    clim=(self.vmin, self.vmax),
+                    title=pol,
+                    colorbar=True,
+                    cmap="inferno"
+                )
+            )
+
+        return hv.Layout(plots).cols(2)
 
 
         # x_axis = self.axis_map[self.x_axis]

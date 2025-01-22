@@ -2,6 +2,7 @@ import numpy as np
 import xarray
 import dask.array as da
 import pandas as pd
+import panel as pn
 
 from daskms import xds_from_storage_ms, xds_from_storage_table
 from ducc0 import wgridder
@@ -64,7 +65,7 @@ class Visibilities(object):
         )
 
 
-    def grid(self):
+    def grid(self, pol="I"):
 
         pix_x, pix_y = 1024, 1024
         cell_x, cell_y = 2.5e-6, 2.5e-6
@@ -103,11 +104,11 @@ class Visibilities(object):
         )
 
         wsum = img_weight.sum()
-
+        
         return timedec(wgridder.vis2dirty)(
             uvw=self.dataset.UVW.values,
             freq=self.dataset.chan.values,
-            vis=stokes_vis["I"],
+            vis=stokes_vis[pol],
             wgt=img_weight.astype(np.float32), #np.ones(vis.shape, dtype=np.float32),
             npix_x=pix_x,
             npix_y=pix_y,
