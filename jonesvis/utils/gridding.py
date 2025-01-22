@@ -3,10 +3,9 @@ from numba import njit
 from scipy.constants import c as lightspeed
 
 
-def vis_to_stokes(visibilities, weights, feed_type="linear"):
+def vis_to_stokes_vis(visibilities, feed_type="linear"):
 
     stokes_vis = {}
-    stokes_weights = {}
 
     # NOTE: Presumes unity weights i.e. definitely not correct in general.
     if feed_type == "linear":
@@ -15,6 +14,20 @@ def vis_to_stokes(visibilities, weights, feed_type="linear"):
         stokes_vis["Q"] = 0.5 * (visibilities[..., 0] - visibilities[..., 3])
         stokes_vis["U"] = 0.5 * (visibilities[..., 1] + visibilities[..., 2])
         stokes_vis["V"] = 0.5 * (-1j * visibilities[..., 1] + 1j * visibilities[..., 3])
+
+    elif feed_type == "circular":
+
+        raise NotImplementedError("Circular feeds are not yet supported.")
+
+    return stokes_vis
+
+
+def wgt_to_stokes_wgt(weights, feed_type="linear"):
+
+    stokes_weights = {}
+
+    # NOTE: Presumes unity weights i.e. definitely not correct in general.
+    if feed_type == "linear":
 
         stokes_weights["I"] = 2 * weights[..., 0]
         stokes_weights["Q"] = 2 * weights[..., 1]
@@ -25,7 +38,7 @@ def vis_to_stokes(visibilities, weights, feed_type="linear"):
 
         raise NotImplementedError("Circular feeds are not yet supported.")
 
-    return stokes_vis, stokes_weights
+    return stokes_weights
 
 
 @njit(nogil=True, cache=True)
