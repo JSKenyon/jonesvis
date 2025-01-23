@@ -25,39 +25,7 @@ class Gain(param.Parameterized):
         default=1
     )
 
-    std_dev = param.Number(
-        label="Standard deviation",
-        bounds=(0, 2),
-        step=0.05,
-        default=0.1
-    )
-
-    length_scale_time = param.Number(
-        label="Length Scale (Time)",
-        bounds=(0, 1),
-        step=0.05,
-        default=0.25
-    )
-    length_scale_freq = param.Number(
-        label="Length Scale (Frequency)",
-        bounds=(0, 1),
-        step=0.05,
-        default=0.1
-    )
-
-    # Set the bounds during the init step.
-    rasterize_when = param.Integer(
-        label="Rasterize Limit",
-        bounds=(1, None),
-        step=10000,
-        default=50000,
-    )
-
-    _gain_parameters = [
-        "std_dev",
-        "length_scale_time",
-        "length_scale_freq",
-    ]
+    _gain_parameters = []
 
     _display_parameters = [
         "vmin",
@@ -82,44 +50,16 @@ class Gain(param.Parameterized):
 
     @property
     def gains(self):
-
         freqs = self.freqs
         times = self.times
         ntime = times.size
         nchan = freqs.size
         nant = self.n_ant
 
-        rng = np.random.default_rng(12345)  # Set seed.
-
-        # This is not really required. Could leave this in physical units.
-        t = (times - times.min()) / (times.max() - times.min())
-        # nu = 2.5 * (freqs / freqs.mean() - 1.0)
-        nu = (freqs - freqs.min()) / (freqs.max() - freqs.min())
-
-        # We cannot set independent std as in the kronecker product they end
-        # up getting combined.
-
-        tt = np.abs(t[:, None] - t[None, :])
-        lt = self.length_scale_time
-        Kt = self.std_dev * np.exp(-tt**2/(2*lt**2))  # Squared exponential.
-        Lt = np.linalg.cholesky(Kt + 1e-10*np.eye(ntime))
-        vv = np.abs(nu[:, None] - nu[None, :])
-        lv = self.length_scale_freq
-        Kv = self.std_dev * np.exp(-vv**2/(2*lv**2))
-        Lv = np.linalg.cholesky(Kv + 1e-10*np.eye(nchan))
-        L = (Lt, Lv)  # np.kron(Lt, Lv) vec(chi)
-
         jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
-        for p in range(nant):
-            for c in [0, -1]:  # for now only diagonal
-                xi_amp = rng.standard_normal(size=(ntime, nchan))
-                amp = kron_matvec(L, xi_amp)  # No guarantee of positivity. #np.exp(-nu[None, :]**2 + kron_matvec(L, xi_amp))
-                xi_phase = rng.standard_normal(size=(ntime, nchan))
-                phase = kron_matvec(L, xi_phase)
-                jones[:, :, p, 0, c] = amp * np.exp(1.0j * phase)
+        jones[..., (0, 3)] = 1  # Identity gains.
 
         return jones
-
 
     def update_image(self):
 
@@ -138,12 +78,6 @@ class Gain(param.Parameterized):
             img.opts(clim=(self.vmin, self.vmax)) for img in self.stokes_images
         ]
 
-    @pn.depends(
-        "length_scale_time",
-        "length_scale_freq",
-        "std_dev",
-        watch=True
-    )
     def update_stokes_images(self):
 
         pn.state.log(f'Plot update triggered.')
@@ -168,12 +102,6 @@ class Gain(param.Parameterized):
 
         self.stokes_images = plots
 
-    @pn.depends(
-        "length_scale_time",
-        "length_scale_freq",
-        "std_dev",
-        watch=True
-    )
     def update_jones_images(self):
 
         plots = [

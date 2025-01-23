@@ -1,7 +1,7 @@
 from jonesvis.jones.delay import Delay
-from jonesvis.jones.base import Gain
+from jonesvis.jones.diag_complex import DiagComplex
 
 JONES_TYPES = {
-    "complex": Gain,
+    "diag_complex": DiagComplex,
     "delay": Delay
 }

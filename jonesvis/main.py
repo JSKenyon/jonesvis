@@ -37,7 +37,7 @@ def app(
     
     jv = JonesVisualiser(ms_path)
 
-    customised_widget = pn.Param(
+    customised_widgets = pn.Param(
         jv.param,
         show_name=False,
         widgets={"gain_type": {"sizing_mode": "stretch_width"}}
@@ -46,7 +46,7 @@ def app(
     layout = pn.template.MaterialTemplate(
         # site="Panel",
         title="Jones-Visualiser",
-        sidebar=[customised_widget, jv.gain_widgets],
+        sidebar=[customised_widgets, jv.gain_widgets],
         main=[jv.gain_plots],
     ).servable()
 
