@@ -1,4 +1,5 @@
 import panel as pn
+import param
 
 from pathlib import Path
 
@@ -6,8 +7,7 @@ import typer
 from typing_extensions import Annotated
 
 from jonesvis.visilbities import Visibilities
-from jonesvis.jones.base import Gain
-from jonesvis.jones.delay import Delay
+from jonesvis.jones import JONES_TYPES
 
 
 def main():
@@ -35,34 +35,19 @@ def app(
     ] = 5006
 ):
     
-    vis = Visibilities(ms_path)
+    jv = JonesVisualiser(ms_path)
 
-    gains = {}
-
-    gains["complex"] = Gain(vis)
-    gains["delay"] = Delay(vis)
-
-    def get_widgets(value):
-        return gains[value].widgets
-
-    def get_plot(value):
-        return gains[value].update_image
-
-    gain_type = pn.widgets.Select(
-        name="Jones Type",
-        options=list(gains.keys()),
-        value=list(gains.keys())[0],
-        sizing_mode="stretch_width"
+    customised_widget = pn.Param(
+        jv.param,
+        show_name=False,
+        widgets={"gain_type": {"sizing_mode": "stretch_width"}}
     )
-
-    bound_get_widgets = pn.bind(get_widgets, gain_type)
-    bound_get_plot = pn.bind(get_plot, gain_type)
 
     layout = pn.template.MaterialTemplate(
         # site="Panel",
         title="Jones-Visualiser",
-        sidebar=[gain_type, bound_get_widgets],
-        main=[bound_get_plot],
+        sidebar=[customised_widget, jv.gain_widgets],
+        main=[jv.gain_plots],
     ).servable()
 
     pn.serve(
@@ -70,3 +55,32 @@ def app(
         port=port,
         show=False
     )
+
+class JonesVisualiser(param.Parameterized):
+
+    gain_type = param.Selector(
+        label="Gain Type",
+        default=list(JONES_TYPES.keys())[0],
+        objects=list(JONES_TYPES.keys())
+    )
+
+    def __init__(self, ms_path, **params):
+
+        super().__init__(**params)
+
+        self.ms_path = ms_path
+        self.set_gain_type()
+
+    @pn.depends("gain_type", watch=True)
+    def set_gain_type(self):
+        vis = Visibilities(self.ms_path)
+        self.gain = JONES_TYPES[self.gain_type](vis)
+
+    @pn.depends("gain_type")
+    def gain_widgets(self):
+        return self.gain.widgets
+
+    @pn.depends("gain_type")
+    def gain_plots(self):
+        return self.gain.update_image
+
