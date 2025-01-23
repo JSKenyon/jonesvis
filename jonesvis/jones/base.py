@@ -106,7 +106,8 @@ class Gain(param.Parameterized):
 
         self.n_ant = self.vis.dataset.ANTENNA2.values.max() + 1
 
-
+        self.update_stokes_images()
+        self.update_jones_images()
         # self.dm = DataManager(data_path, fields=[data_field, flag_field])
         # self.data_field = data_field
         # self.flag_field = flag_field
@@ -247,6 +248,24 @@ class Gain(param.Parameterized):
 
     def update_image(self):
 
+        return hv.Layout(
+            [
+                self.jones_images[0],
+                *self.stokes_images[:2],
+                self.jones_images[1],
+                *self.stokes_images[2:]
+            ]
+        ).cols(3)
+
+    @pn.depends("vmin", "vmax", watch=True)
+    def set_vlim(self):
+        self.stokes_images = [
+            img.opts(clim=(self.vmin, self.vmax)) for img in self.stokes_images
+        ]
+
+    @pn.depends("length_scale_time", "length_scale_freq", watch=True)
+    def update_stokes_images(self):
+
         pn.state.log(f'Plot update triggered.')
 
         self.vis.apply_gains(self.gains)
@@ -264,12 +283,20 @@ class Gain(param.Parameterized):
                     title=pol,
                     colorbar=True,
                     cmap="inferno",
-                    aspect="square"
                 )
             )
 
-        return hv.Layout(plots).cols(2)
+        self.stokes_images = plots
 
+    @pn.depends("length_scale_time", "length_scale_freq", watch=True)
+    def update_jones_images(self):
+
+        plots = [
+            hv.Image(np.abs(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True),
+            hv.Image(np.angle(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True)
+        ]
+
+        self.jones_images = plots
 
         # x_axis = self.axis_map[self.x_axis]
         # y_axis = self.axis_map[self.y_axis]
@@ -325,7 +352,7 @@ class Gain(param.Parameterized):
 
         # pn.state.log(f'Plot update completed.')
 
-        return shaded_plot * raw_points * self.rectangles
+        # return shaded_plot * raw_points * self.rectangles
 
     @property
     def widgets(self):
