@@ -32,8 +32,9 @@ class Visibilities(object):
             combine_attrs="drop_conflicts"
         ).compute()
 
-        # TODO: Overwrite visibility values.
-        self.dataset.DATA.values[:] = 1
+        # TODO: Allows this configurable.
+        self.dataset.DATA.values[..., (1, 2)] = 0
+        self.dataset.DATA.values[..., (0, 3)] = 1
 
         spw_dataset = xds_from_storage_table(
             str(ms_path) + "::SPECTRAL_WINDOW"
@@ -129,4 +130,3 @@ class Visibilities(object):
             do_wgridding=False,
             nthreads=1
         ) / self.wsum
-

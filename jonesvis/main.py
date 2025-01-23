@@ -7,6 +7,7 @@ from typing_extensions import Annotated
 
 from jonesvis.visilbities import Visibilities
 from jonesvis.jones.base import Gain
+from jonesvis.jones.delay import Delay
 
 
 def main():
@@ -39,6 +40,7 @@ def app(
     gains = {}
 
     gains["complex"] = Gain(vis)
+    gains["delay"] = Delay(vis)
 
     def get_widgets(value):
         return gains[value].widgets
