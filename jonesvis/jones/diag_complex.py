@@ -46,8 +46,8 @@ class DiagComplex(Gain):
     def __init__(self, vis, **params):
         super().__init__(vis, **params)
 
-    @property
-    def gains(self):
+    @pn.depends(*_gain_parameters, watch=True)
+    def update_gains(self):
 
         freqs = self.freqs
         times = self.times
@@ -84,14 +84,9 @@ class DiagComplex(Gain):
                 phase = kron_matvec(L, xi_phase)
                 jones[:, :, p, 0, c] = amp * np.exp(1.0j * phase)
 
-        return jones
+        self.gains = jones
 
-    @pn.depends(
-        "length_scale_time",
-        "length_scale_freq",
-        "std_dev",
-        watch=True
-    )
+    @pn.depends(*_gain_parameters, watch=True)
     def update_stokes_images(self):
 
         pn.state.log(f'Plot update triggered.')
@@ -116,12 +111,7 @@ class DiagComplex(Gain):
 
         self.stokes_images = plots
 
-    @pn.depends(
-        "length_scale_time",
-        "length_scale_freq",
-        "std_dev",
-        watch=True
-    )
+    @pn.depends(*_gain_parameters, watch=True)
     def update_jones_images(self):
 
         plots = [

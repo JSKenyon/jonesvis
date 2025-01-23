@@ -36,18 +36,11 @@ class Delay(Gain):
         "length_scale_time"
     ]
 
-    _display_parameters = [
-        "vmin",
-        "vmax"
-    ]
-
-    _flag_parameters = []
-
     def __init__(self, vis, **params):
         super().__init__(vis, **params)
 
-    @property
-    def gains(self):
+    @pn.depends(*_gain_parameters, watch=True)
+    def update_gains(self):
 
         freqs = self.freqs
         times = self.times
@@ -82,12 +75,9 @@ class Delay(Gain):
         jones = np.exp(1j * delays / 1e9 * freqs[None, :, None, None, None])
         jones[..., (1, 2)] = 0  # Diagonal term.
 
-        return jones
+        self.gains = jones
 
-    @pn.depends(
-        *_gain_parameters,
-        watch=True
-    )
+    @pn.depends(*_gain_parameters, watch=True)
     def update_stokes_images(self):
 
         pn.state.log(f'Plot update triggered.')
@@ -112,10 +102,7 @@ class Delay(Gain):
 
         self.stokes_images = plots
 
-    @pn.depends(
-        *_gain_parameters,
-        watch=True
-    )
+    @pn.depends(*_gain_parameters, watch=True)
     def update_jones_images(self):
 
         plots = [

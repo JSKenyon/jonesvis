@@ -45,21 +45,23 @@ class Gain(param.Parameterized):
 
         self.n_ant = self.vis.dataset.ANTENNA2.values.max() + 1
 
+        self.update_gains()
         self.update_stokes_images()
         self.update_jones_images()
 
-    @property
-    def gains(self):
+    @pn.depends(
+        *_gain_parameters,
+        watch=True
+    )
+    def update_gains(self):
         freqs = self.freqs
         times = self.times
         ntime = times.size
         nchan = freqs.size
         nant = self.n_ant
 
-        jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
-        jones[..., (0, 3)] = 1  # Identity gains.
-
-        return jones
+        self.gains = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
+        self.gains[..., (0, 3)] = 1  # Identity gains.
 
     def update_image(self):
 
