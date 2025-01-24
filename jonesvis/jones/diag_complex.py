@@ -14,30 +14,51 @@ hv.extension('bokeh', width="stretch_both")
 
 class DiagComplex(Gain):
 
-    std_dev = param.Number(
-        label="Standard deviation",
-        bounds=(0, 2),
-        step=0.05,
-        default=0.1
+    amp_std_dev = param.Number(
+        label="Amplitude Standard deviation",
+        bounds=(0, 0.25),
+        step=0.01,
+        default=0
+    )
+    amp_length_scale_time = param.Number(
+        label="Amplitude Length Scale (Time)",
+        bounds=(0, 1),
+        step=0.01,
+        default=0
+    )
+    amp_length_scale_freq = param.Number(
+        label="Amplitude Length Scale (Frequency)",
+        bounds=(0, 1),
+        step=0.01,
+        default=0
     )
 
-    length_scale_time = param.Number(
-        label="Length Scale (Time)",
-        bounds=(0, 1),
-        step=0.05,
-        default=0.25
+    phase_std_dev = param.Number(
+        label="Phase Standard deviation",
+        bounds=(0, 2),
+        step=0.01,
+        default=0
     )
-    length_scale_freq = param.Number(
-        label="Length Scale (Frequency)",
+    phase_length_scale_time = param.Number(
+        label="Phase Length Scale (Time)",
         bounds=(0, 1),
-        step=0.05,
-        default=0.1
+        step=0.01,
+        default=0
+    )
+    phase_length_scale_freq = param.Number(
+        label="Phase Length Scale (Frequency)",
+        bounds=(0, 1),
+        step=0.01,
+        default=0
     )
 
     _gain_parameters = [
-        "std_dev",
-        "length_scale_time",
-        "length_scale_freq",
+        "amp_std_dev",
+        "phase_std_dev",
+        "amp_length_scale_time",
+        "amp_length_scale_freq",
+        "phase_length_scale_time",
+        "phase_length_scale_freq",
     ]
 
     def __init__(self, vis, **params):
@@ -63,22 +84,41 @@ class DiagComplex(Gain):
         # up getting combined.
 
         tt = np.abs(t[:, None] - t[None, :])
-        lt = self.length_scale_time
-        Kt = self.std_dev * np.exp(-tt**2/(2*lt**2))  # Squared exponential.
-        Lt = np.linalg.cholesky(Kt + 1e-10*np.eye(ntime))
         vv = np.abs(nu[:, None] - nu[None, :])
-        lv = self.length_scale_freq
-        Kv = self.std_dev * np.exp(-vv**2/(2*lv**2))
-        Lv = np.linalg.cholesky(Kv + 1e-10*np.eye(nchan))
-        L = (Lt, Lv)  # np.kron(Lt, Lv) vec(chi)
+
+        # Amplitude
+        if self.amp_std_dev:
+            lt = self.amp_length_scale_time
+            Kt = self.amp_std_dev * np.exp(-tt**2/(2*lt**2))
+            Lt = np.linalg.cholesky(Kt + 1e-10*np.eye(ntime))
+
+            lv = self.amp_length_scale_freq
+            Kv = self.amp_std_dev * np.exp(-vv**2/(2*lv**2))
+            Lv = np.linalg.cholesky(Kv + 1e-10*np.eye(nchan))
+            L_amp = (Lt, Lv)  # np.kron(Lt, Lv) vec(chi)
+        else:
+            L_amp = (np.zeros((ntime, ntime)), np.zeros((nchan, nchan)))
+
+        # Phase
+        if self.phase_std_dev:
+            lt = self.phase_length_scale_time
+            Kt = self.phase_std_dev * np.exp(-tt**2/(2*lt**2))
+            Lt = np.linalg.cholesky(Kt + 1e-10*np.eye(ntime))
+
+            lv = self.phase_length_scale_freq
+            Kv = self.phase_std_dev * np.exp(-vv**2/(2*lv**2))
+            Lv = np.linalg.cholesky(Kv + 1e-10*np.eye(nchan))
+            L_phase = (Lt, Lv)  # np.kron(Lt, Lv) vec(chi)
+        else:
+            L_phase = (np.zeros((ntime, ntime)), np.zeros((nchan, nchan)))
 
         jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
         for p in range(nant):
             for c in [0, -1]:  # for now only diagonal
                 xi_amp = rng.standard_normal(size=(ntime, nchan))
-                amp = 1 + kron_matvec(L, xi_amp)  # No guarantee of positivity. #np.exp(-nu[None, :]**2 + kron_matvec(L, xi_amp))
+                amp = 1 + kron_matvec(L_amp, xi_amp)
                 xi_phase = rng.standard_normal(size=(ntime, nchan))
-                phase = kron_matvec(L, xi_phase)
+                phase = kron_matvec(L_phase, xi_phase)
                 jones[:, :, p, 0, c] = amp * np.exp(1.0j * phase)
 
         self.gains = jones
