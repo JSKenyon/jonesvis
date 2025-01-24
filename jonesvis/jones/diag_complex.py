@@ -22,34 +22,34 @@ class DiagComplex(Gain):
     )
     amp_length_scale_time = param.Number(
         label="Amplitude Length Scale (Time)",
-        bounds=(0, 1),
+        bounds=(0.01, 1),
         step=0.01,
-        default=0
+        default=0.2
     )
     amp_length_scale_freq = param.Number(
         label="Amplitude Length Scale (Frequency)",
-        bounds=(0, 1),
+        bounds=(0.01, 1),
         step=0.01,
-        default=0
+        default=0.1
     )
 
     phase_std_dev = param.Number(
         label="Phase Standard deviation",
-        bounds=(0, 2),
+        bounds=(0, np.round(2 * np.pi / 3, 2)),
         step=0.01,
         default=0
     )
     phase_length_scale_time = param.Number(
         label="Phase Length Scale (Time)",
-        bounds=(0, 1),
+        bounds=(0.01, 1),
         step=0.01,
-        default=0
+        default=0.2
     )
     phase_length_scale_freq = param.Number(
         label="Phase Length Scale (Frequency)",
-        bounds=(0, 1),
+        bounds=(0.01, 1),
         step=0.01,
-        default=0
+        default=0.1
     )
 
     _gain_parameters = [

@@ -15,11 +15,11 @@ class Gain(param.Parameterized):
 
     vmin = param.Number(
         label="vmin",
-        default=0.1
+        default=-0.1
     )
     vmax = param.Number(
         label="vmax",
-        default=-0.1
+        default=0.1
     )
 
     antenna = param.Integer(
