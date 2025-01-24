@@ -33,6 +33,33 @@ class Gain(param.Parameterized):
         objects=["XX", "XY", "YX", "YY"]
     )
 
+    stokes_i = param.Number(
+        label="Stokes I",
+        default=1
+    )
+
+    stokes_q = param.Number(
+        label="Stokes Q",
+        default=0
+    )
+
+    stokes_u = param.Number(
+        label="Stokes U",
+        default=0
+    )
+
+    stokes_v = param.Number(
+        label="Stokes V",
+        default=0
+    )
+
+    _data_parameters = [
+        "stokes_i",
+        "stokes_q",
+        "stokes_u",
+        "stokes_v",
+    ]
+
     _gain_parameters = []
 
     _display_parameters = [
@@ -151,6 +178,18 @@ class Gain(param.Parameterized):
 
         self.jones_images = plots
 
+    @pn.depends(*_data_parameters, watch=True)
+    def update_stokes(self):
+
+        self.vis.set_stokes(
+            (
+                self.stokes_i,
+                self.stokes_q,
+                self.stokes_u,
+                self.stokes_v
+            )
+        )
+
     @property
     def widgets(self):
 
@@ -180,7 +219,15 @@ class Gain(param.Parameterized):
             widgets=widget_opts
         )
 
+        data_widgets = pn.Param(
+            self.param,
+            parameters=self._data_parameters,
+            name="SOURCE",
+            widgets=widget_opts
+        )
+
         return pn.Column(
+            pn.WidgetBox(data_widgets),
             pn.WidgetBox(display_widgets),
             pn.WidgetBox(gain_widgets),
             pn.WidgetBox(selection_widgets)

@@ -32,10 +32,6 @@ class Visibilities(object):
             combine_attrs="drop_conflicts"
         ).compute()
 
-        # TODO: Allows this configurable.
-        self.dataset.DATA.values[..., (1, 2)] = 0
-        self.dataset.DATA.values[..., (0, 3)] = 1
-
         spw_dataset = xds_from_storage_table(
             str(ms_path) + "::SPECTRAL_WINDOW"
         )[0]
@@ -61,13 +57,14 @@ class Visibilities(object):
             self.dims["corr"]
         )
 
+        self.set_stokes()  # Set starting stokes params.
+
         self.pix_x, self.pix_y = 512, 512
         self.cell_x, self.cell_y = 2.5e-6, 2.5e-6
 
         weights = np.ones(self.dataset.DATA.values.shape, dtype=np.float64)
         flags = np.zeros(self.dataset.DATA.values.shape[:-1], dtype=bool)
 
-        self.stokes_vis = vis_to_stokes_vis(self.dataset.DATA.values)
         stokes_weight = wgt_to_stokes_wgt(weights)
 
         gridded_weights = timedec(grid_weights)(
@@ -99,8 +96,7 @@ class Visibilities(object):
 
     def apply_gains(self, gains):
 
-        # TODO: Overwrite visibility values.
-        self.dataset.DATA.values[:] = 1
+        self.dataset.DATA.values[...] = self.visibility_element
 
         # Assume full resolution gains.
         nb_apply_gains(
@@ -130,3 +126,23 @@ class Visibilities(object):
             do_wgridding=False,
             nthreads=1
         ) / self.wsum
+
+    def set_stokes(self, stokes=(1, 0, 0, 0), feed_type="linear"):
+
+        self.stokes = stokes
+
+        if feed_type == "linear":
+            self.visibility_element = (
+                self.stokes[0] + self.stokes[1],
+                self.stokes[2] + 1j*self.stokes[3],
+                self.stokes[2] - 1j*self.stokes[3],
+                self.stokes[0] - self.stokes[1],
+            )
+        elif feed_type == "circular":
+            raise NotImplementedError("Circular feeds are not yet supported.")
+        else:
+            raise ValueError(f"Feed type = {feed_type} not understood.")
+
+        self.dataset.DATA.values[...] = self.visibility_element
+
+        self.stokes_vis = vis_to_stokes_vis(self.dataset.DATA.values)

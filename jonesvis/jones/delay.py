@@ -74,7 +74,7 @@ class Delay(Gain):
         self.delays = delays
         self.gains = jones
 
-    @pn.depends(*_gain_parameters, watch=True)
+    @pn.depends(*_gain_parameters, *Gain._data_parameters, watch=True)
     def update_stokes_images(self):
         super().update_stokes_images()
 

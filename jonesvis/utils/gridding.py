@@ -13,7 +13,7 @@ def vis_to_stokes_vis(visibilities, feed_type="linear"):
         stokes_vis["I"] = 0.5 * (visibilities[..., 0] + visibilities[..., 3])
         stokes_vis["Q"] = 0.5 * (visibilities[..., 0] - visibilities[..., 3])
         stokes_vis["U"] = 0.5 * (visibilities[..., 1] + visibilities[..., 2])
-        stokes_vis["V"] = 0.5 * (-1j * visibilities[..., 1] + 1j * visibilities[..., 3])
+        stokes_vis["V"] = 0.5 * (-1j * visibilities[..., 1] + 1j * visibilities[..., 2])
 
     elif feed_type == "circular":
 
