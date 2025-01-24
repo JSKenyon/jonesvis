@@ -1,16 +1,11 @@
 import numpy as np
-from math import prod
 
 import holoviews as hv
-from holoviews import streams
-from holoviews.operation.datashader import datashade
 
 import param
 import panel as pn
 
 from concurrent.futures import ThreadPoolExecutor, wait
-
-from jonesvis.utils.math import kron_matvec
 
 pn.config.throttled = True  # Throttle all sliders.
 
