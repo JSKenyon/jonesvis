@@ -117,6 +117,9 @@ class Gain(param.Parameterized):
                     title=pol,
                     colorbar=True,
                     cmap="inferno",
+                    labelled=[],
+                    xticks=0,
+                    yticks=0
                 )
             )
 

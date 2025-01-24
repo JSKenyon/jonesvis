@@ -98,16 +98,48 @@ class DiagComplex(Gain):
 
         plots = [
             hv.Image(
-                amp
+                (
+                    self.freqs,
+                    self.times,
+                    amp
+                )
             ).opts(
                 responsive=True,
-                colorbar=True
+                colorbar=True,
+                title="Amplitude Surface",
+                xlabel="Frequency",
+                ylabel="Time",
+                clim=(amp.min(), amp.max()),
+                xticks=[
+                    self.freqs.min(),
+                    self.freqs.mean(),
+                    self.freqs.max(),
+                ]
+            ).redim(
+                x="surf0",
+                y="surf1"
             ),
             hv.Image(
-                phase
+                (
+                    self.freqs,
+                    self.times,
+                    phase
+                )
             ).opts(
                 responsive=True,
-                colorbar=True
+                colorbar=True,
+                title="Phase Surface",
+                xlabel="Frequency",
+                ylabel="Time",
+                clim=(phase.min(), phase.max()),
+                xticks=[
+                    self.freqs.min(),
+                    self.freqs.mean(),
+                    self.freqs.max(),
+                ]
+            ).redim(
+                x="surf0",
+                y="surf1"
             )
         ]
 
