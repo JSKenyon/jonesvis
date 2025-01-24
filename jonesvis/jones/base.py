@@ -147,7 +147,9 @@ class Gain(param.Parameterized):
                     clabel="Flux (Jy)",
                     labelled=[],
                     xticks=0,
-                    yticks=0
+                    yticks=0,
+                    tools=["hover"],
+                    hover_tooltips=[("Flux (Jy)", "@z")]
                 )
             )
 
