@@ -25,6 +25,17 @@ class Gain(param.Parameterized):
         default=1
     )
 
+    antenna = param.Integer(
+        label="Antenna Number",
+        default=0
+    )
+
+    correlation = param.Selector(
+        label="Correlation",
+        default="XX",
+        objects=["XX", "XY", "YX", "YY"]
+    )
+
     _gain_parameters = []
 
     _display_parameters = [
@@ -32,11 +43,12 @@ class Gain(param.Parameterized):
         "vmax"
     ]
 
-    _flag_parameters = []
+    _selection_parameters = [
+        "antenna",
+        "correlation"
+    ]
 
     def __init__(self, vis, **params):
-
-        super().__init__(**params)
 
         self.vis = vis
 
@@ -44,6 +56,10 @@ class Gain(param.Parameterized):
         self.freqs = self.vis.dataset.chan.values
 
         self.n_ant = self.vis.dataset.ANTENNA2.values.max() + 1
+
+        self.param.antenna.bounds = (0, self.n_ant)
+
+        super().__init__(**params)
 
         self.update_gains()
         self.update_stokes_images()
@@ -106,9 +122,25 @@ class Gain(param.Parameterized):
 
     def update_jones_images(self):
 
+        corr_idx = self.param.correlation.objects.index(self.correlation)
+
+        selected_gains = self.gains[:, :, self.antenna, 0, corr_idx]
+        amp = np.abs(selected_gains)
+        phase =  np.angle(selected_gains)
+
         plots = [
-            hv.Image(np.abs(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True),
-            hv.Image(np.angle(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True)
+            hv.Image(
+                amp
+            ).opts(
+                responsive=True,
+                colorbar=True
+            ),
+            hv.Image(
+                phase
+            ).opts(
+                responsive=True,
+                colorbar=True
+            )
         ]
 
         self.jones_images = plots
@@ -128,22 +160,22 @@ class Gain(param.Parameterized):
             widgets=widget_opts
         )
 
-        selection_widgets = pn.Param(
+        gain_widgets = pn.Param(
             self.param,
             parameters=self._gain_parameters,
             name="JONES",
             widgets=widget_opts
         )
 
-        flagging_widgets = pn.Param(
+        selection_widgets = pn.Param(
             self.param,
-            parameters=self._flag_parameters,
-            name="FLAGGING",
+            parameters=self._selection_parameters,
+            name="SELECTION",
             widgets=widget_opts
         )
 
         return pn.Column(
             pn.WidgetBox(display_widgets),
-            pn.WidgetBox(selection_widgets),
-            pn.WidgetBox(flagging_widgets)
+            pn.WidgetBox(gain_widgets),
+            pn.WidgetBox(selection_widgets)
         )

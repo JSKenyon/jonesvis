@@ -111,12 +111,28 @@ class DiagComplex(Gain):
 
         self.stokes_images = plots
 
-    @pn.depends(*_gain_parameters, watch=True)
+    @pn.depends(*_gain_parameters, *Gain._selection_parameters, watch=True)
     def update_jones_images(self):
 
+        corr_idx = self.param.correlation.objects.index(self.correlation)
+
+        selected_gains = self.gains[:, :, self.antenna, 0, corr_idx]
+        amp = np.abs(selected_gains)
+        phase =  np.angle(selected_gains)
+
         plots = [
-            hv.Image(np.abs(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True),
-            hv.Image(np.angle(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True)
+            hv.Image(
+                amp
+            ).opts(
+                responsive=True,
+                colorbar=True
+            ),
+            hv.Image(
+                phase
+            ).opts(
+                responsive=True,
+                colorbar=True
+            )
         ]
 
         self.jones_images = plots

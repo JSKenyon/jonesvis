@@ -99,12 +99,14 @@ class Delay(Gain):
 
         self.stokes_images = plots
 
-    @pn.depends(*_gain_parameters, watch=True)
+    @pn.depends(*_gain_parameters, *Gain._selection_parameters, watch=True)
     def update_jones_images(self):
 
+        corr_idx = self.param.correlation.objects.index(self.correlation)
+
         # TODO: Add antenna and correlation selection.
-        phase = np.angle(self.gains[:, :, 0, 0, 0])
-        delay = self.delays[:, 0, 0, 0, 0]
+        phase = np.angle(self.gains[:, :, self.antenna, 0, corr_idx])
+        delay = self.delays[:, 0, self.antenna, 0, corr_idx]
 
         plots = [
             hv.Scatter(
