@@ -117,6 +117,7 @@ class Gain(param.Parameterized):
                     title=pol,
                     colorbar=True,
                     cmap="inferno",
+                    clabel="Flux (Jy)",
                     labelled=[],
                     xticks=0,
                     yticks=0
