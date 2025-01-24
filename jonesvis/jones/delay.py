@@ -1,15 +1,11 @@
 import numpy as np
-from math import prod
 
 import holoviews as hv
-from holoviews import streams
-from holoviews.operation.datashader import datashade
 
 import param
 import panel as pn
 
 from jonesvis.jones.base import Gain
-from jonesvis.utils.math import kron_matvec
 
 pn.config.throttled = True  # Throttle all sliders.
 
@@ -19,15 +15,15 @@ class Delay(Gain):
 
     std_dev = param.Number(
         label="Standard deviation (in ns)",
-        bounds=(0, 1),
-        step=0.01,
+        bounds=(0, 5),
+        step=0.1,
         default=0
     )
 
     length_scale_time = param.Number(
         label="Length Scale (Time)",
         bounds=(0, 1),
-        step=0.05,
+        step=0.01,
         default=0.25
     )
 
@@ -72,9 +68,10 @@ class Delay(Gain):
                 xi_delay = rng.standard_normal(size=(ntime,))
                 delays[:, 0, p, 0, c] =  Lt @ xi_delay
 
-        jones = np.exp(1j * delays / 1e9 * freqs[None, :, None, None, None])
+        jones = np.exp(1j * delays * 1e-9 * freqs[None, :, None, None, None])
         jones[..., (1, 2)] = 0  # Diagonal term.
 
+        self.delays = delays
         self.gains = jones
 
     @pn.depends(*_gain_parameters, watch=True)
@@ -105,9 +102,44 @@ class Delay(Gain):
     @pn.depends(*_gain_parameters, watch=True)
     def update_jones_images(self):
 
+        # TODO: Add antenna and correlation selection.
+        phase = np.angle(self.gains[:, :, 0, 0, 0])
+        delay = self.delays[:, 0, 0, 0, 0]
+
         plots = [
-            hv.Image(np.abs(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True),
-            hv.Image(np.angle(self.gains[:,:,0,0,0])).opts(responsive=True, colorbar=True)
+            hv.Scatter(
+                list(zip(self.times, delay))
+            ).opts(
+                responsive=True,
+                title="Parameters",
+                xlabel="Time",
+                ylabel="Delay (ns)"
+            ).redim(
+                x="gain0",
+                y="gain1"
+            ),
+            hv.Image(
+                (
+                    self.freqs,
+                    self.times,
+                    phase
+                )
+            ).opts(
+                responsive=True,
+                colorbar=True,
+                title="Phase Surface",
+                xlabel="Frequency",
+                ylabel="Time",
+                clim=(phase.min(), phase.max()),
+                xticks=[
+                    self.freqs.min(),
+                    self.freqs.mean(),
+                    self.freqs.max(),
+                ]
+            ).redim(
+                x="surf0",
+                y="surf1"
+            )
         ]
 
         self.jones_images = plots
