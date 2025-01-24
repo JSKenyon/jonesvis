@@ -1,9 +1,6 @@
 import numpy as np
-from math import prod
 
 import holoviews as hv
-from holoviews import streams
-from holoviews.operation.datashader import datashade
 
 import param
 import panel as pn
@@ -88,28 +85,7 @@ class DiagComplex(Gain):
 
     @pn.depends(*_gain_parameters, watch=True)
     def update_stokes_images(self):
-
-        pn.state.log(f'Plot update triggered.')
-
-        self.vis.apply_gains(self.gains)
-
-        plots = []
-
-        for pol in "IQUV":
-            image_data = self.vis.grid(pol)
-            plots.append(
-                hv.Image(
-                    image_data
-                ).opts(
-                    responsive=True,
-                    clim=(self.vmin, self.vmax),
-                    title=pol,
-                    colorbar=True,
-                    cmap="inferno",
-                )
-            )
-
-        self.stokes_images = plots
+        super().update_stokes_images()
 
     @pn.depends(*_gain_parameters, *Gain._selection_parameters, watch=True)
     def update_jones_images(self):

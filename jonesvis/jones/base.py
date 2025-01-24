@@ -8,6 +8,8 @@ from holoviews.operation.datashader import datashade
 import param
 import panel as pn
 
+from concurrent.futures import ThreadPoolExecutor, wait
+
 from jonesvis.utils.math import kron_matvec
 
 pn.config.throttled = True  # Throttle all sliders.
@@ -102,10 +104,15 @@ class Gain(param.Parameterized):
 
         self.vis.apply_gains(self.gains)
 
+        with ThreadPoolExecutor(max_workers=4) as tpe:
+            futures = [tpe.submit(self.vis.grid, pol) for pol in "IQUV"]
+
+        wait(futures)
+
         plots = []
 
-        for pol in "IQUV":
-            image_data = self.vis.grid(pol)
+        for future, pol in zip(futures, "IQUV"):
+            image_data = future.result()
             plots.append(
                 hv.Image(
                     image_data
