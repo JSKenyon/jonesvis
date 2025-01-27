@@ -15,9 +15,14 @@ class CrosshandDelay(Gain):
 
     std_dev = param.Number(
         label="Standard deviation (in ns)",
-        bounds=(0, 5),
-        step=0.1,
+        bounds=(0, 2),
+        step=0.01,
         default=0
+    )
+
+    time_invariant = param.Boolean(
+        label="Time Invariant",
+        default=True
     )
 
     length_scale_time = param.Number(
@@ -29,6 +34,7 @@ class CrosshandDelay(Gain):
 
     _gain_parameters = [
         "std_dev",
+        "time_invariant",
         "length_scale_time"
     ]
 
@@ -66,6 +72,9 @@ class CrosshandDelay(Gain):
 
         xi_delay = rng.standard_normal(size=(ntime,))
         delays[:, 0, :, 0, 0] =  (Lt @ xi_delay)[:, None]
+
+        if self.time_invariant:
+            delays[:, 0, :, 0, 0] = delays[0, 0, 0, 0, 0]
 
         jones = np.exp(1j * delays * 1e-9 * freqs[None, :, None, None, None])
         jones[..., (1, 2)] = 0  # Diagonal term.
