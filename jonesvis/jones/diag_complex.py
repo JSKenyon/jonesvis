@@ -34,9 +34,9 @@ class DiagComplex(Gain):
     )
 
     phase_std_dev = param.Number(
-        label="Phase Standard Deviation",
-        bounds=(0, np.round(2 * np.pi / 3, 2)),
-        step=0.01,
+        label="Phase Standard Deviation (deg)",
+        bounds=(0, 180),
+        step=1,
         default=0
     )
     phase_length_scale_time = param.Number(
@@ -102,11 +102,11 @@ class DiagComplex(Gain):
         # Phase
         if self.phase_std_dev:
             lt = self.phase_length_scale_time
-            Kt = self.phase_std_dev * np.exp(-tt**2/(2*lt**2))
+            Kt = np.deg2rad(self.phase_std_dev) * np.exp(-tt**2/(2*lt**2))
             Lt = np.linalg.cholesky(Kt + 1e-10*np.eye(ntime))
 
             lv = self.phase_length_scale_freq
-            Kv = self.phase_std_dev * np.exp(-vv**2/(2*lv**2))
+            Kv = np.deg2rad(self.phase_std_dev) * np.exp(-vv**2/(2*lv**2))
             Lv = np.linalg.cholesky(Kv + 1e-10*np.eye(nchan))
             L_phase = (Lt, Lv)  # np.kron(Lt, Lv) vec(chi)
         else:
