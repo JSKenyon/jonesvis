@@ -12,7 +12,7 @@ pn.config.throttled = True  # Throttle all sliders.
 
 hv.extension('bokeh', width="stretch_both")
 
-class Bandpass(Gain):
+class Leakage(Gain):
 
     amp_std_dev = param.Number(
         label="Amplitude Standard deviation",
@@ -49,6 +49,9 @@ class Bandpass(Gain):
 
     def __init__(self, vis, **params):
         super().__init__(vis, **params)
+
+        # Select first off diagonal.
+        self.correlation = self.param.correlation.objects[1]
 
     @pn.depends(*_gain_parameters, watch=True)
     def update_gains(self):
@@ -88,11 +91,11 @@ class Bandpass(Gain):
         else:
             L_phase = (np.zeros((nchan, nchan)))
 
-        jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
+        jones = np.ones((ntime, nchan, nant, 1, 4), dtype=np.complex128)
         for p in range(nant):
-            for c in [0, -1]:  # for now only diagonal
+            for c in [1, 2]:
                 xi_amp = rng.standard_normal(size=(nchan,))
-                amp = 1 + L_amp @ xi_amp
+                amp = np.abs(L_amp @ xi_amp)
                 xi_phase = rng.standard_normal(size=(nchan,))
                 phase = L_phase @ xi_phase
                 jones[:, :, p, 0, c] = (amp * np.exp(1.0j * phase))[None, :]

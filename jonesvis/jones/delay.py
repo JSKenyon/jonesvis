@@ -27,7 +27,7 @@ class Delay(Gain):
         default=0.25
     )
 
-    _gain_parameters = [
+    _gain_parameters = Gain._gain_parameters + [
         "std_dev",
         "length_scale_time"
     ]
@@ -44,7 +44,7 @@ class Delay(Gain):
         nchan = freqs.size
         nant = self.n_ant
 
-        rng = np.random.default_rng(12345)  # Set seed.
+        rng = np.random.default_rng(self.random_seed)  # Set seed.
 
         # This is not really required. Could leave this in physical units.
         t = (times - times.min()) / (times.max() - times.min())

@@ -22,6 +22,11 @@ class Gain(param.Parameterized):
         default=0.1
     )
 
+    random_seed = param.Integer(
+        label="Random Seed",
+        default=12345
+    )
+
     antenna = param.Integer(
         label="Antenna Number",
         default=0
@@ -60,7 +65,9 @@ class Gain(param.Parameterized):
         "stokes_v",
     ]
 
-    _gain_parameters = []
+    _gain_parameters = [
+        "random_seed"
+    ]
 
     _display_parameters = [
         "vmin",
