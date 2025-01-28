@@ -151,12 +151,12 @@ class Gain(param.Parameterized):
                     title=pol,
                     colorbar=True,
                     cmap="inferno",
-                    clabel="Flux (Jy)",
+                    clabel="Flux (Jy/beam)",
                     labelled=[],
                     xticks=0,
                     yticks=0,
                     tools=["hover"],
-                    hover_tooltips=[("Flux (Jy)", "@z")]
+                    hover_tooltips=[("Flux (Jy/beam)", "@z")]
                 )
             )
 

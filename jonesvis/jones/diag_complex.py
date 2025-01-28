@@ -134,7 +134,7 @@ class DiagComplex(Gain):
 
         selected_gains = self.gains[:, :, self.antenna, 0, corr_idx]
         amp = np.abs(selected_gains)
-        phase =  np.angle(selected_gains)
+        phase =  np.rad2deg(np.angle(selected_gains))
 
         plots = [
             hv.Image(
@@ -150,6 +150,7 @@ class DiagComplex(Gain):
                 xlabel="Frequency",
                 ylabel="Time",
                 clim=(amp.min(), amp.max()),
+                clabel="Amplitude",
                 xticks=[
                     self.freqs.min(),
                     self.freqs.mean(),
@@ -172,6 +173,7 @@ class DiagComplex(Gain):
                 xlabel="Frequency",
                 ylabel="Time",
                 clim=(phase.min(), phase.max()),
+                clabel="Phase (deg)",
                 xticks=[
                     self.freqs.min(),
                     self.freqs.mean(),

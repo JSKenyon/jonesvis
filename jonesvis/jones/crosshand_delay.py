@@ -91,8 +91,8 @@ class CrosshandDelay(Gain):
 
         corr_idx = self.param.correlation.objects.index(self.correlation)
 
-        # TODO: Add antenna and correlation selection.
-        phase = np.angle(self.gains[:, :, self.antenna, 0, corr_idx])
+        selected_gains = self.gains[:, :, self.antenna, 0, corr_idx]
+        phase = np.rad2deg(np.angle(selected_gains))
         delay = self.delays[:, 0, self.antenna, 0, corr_idx]
 
         plots = [
@@ -120,6 +120,7 @@ class CrosshandDelay(Gain):
                 xlabel="Frequency",
                 ylabel="Time",
                 clim=(phase.min(), phase.max()),
+                clabel="Phase (deg)",
                 xticks=[
                     self.freqs.min(),
                     self.freqs.mean(),
