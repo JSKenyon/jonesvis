@@ -15,7 +15,7 @@ hv.extension('bokeh', width="stretch_both")
 class Bandpass(Gain):
 
     amp_std_dev = param.Number(
-        label="Amplitude Standard deviation",
+        label="Amplitude Standard Deviation",
         bounds=(0, 0.25),
         step=0.01,
         default=0
@@ -28,7 +28,7 @@ class Bandpass(Gain):
     )
 
     phase_std_dev = param.Number(
-        label="Phase Standard deviation",
+        label="Phase Standard Deviation",
         bounds=(0, np.round(2 * np.pi / 3, 2)),
         step=0.01,
         default=0

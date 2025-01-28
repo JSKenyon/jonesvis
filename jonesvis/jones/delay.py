@@ -14,7 +14,7 @@ hv.extension('bokeh', width="stretch_both")
 class Delay(Gain):
 
     std_dev = param.Number(
-        label="Standard deviation (in ns)",
+        label="Standard Deviation (in ns)",
         bounds=(0, 5),
         step=0.1,
         default=0

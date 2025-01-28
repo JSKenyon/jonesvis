@@ -14,7 +14,7 @@ hv.extension('bokeh', width="stretch_both")
 class CrosshandDelay(Gain):
 
     std_dev = param.Number(
-        label="Standard deviation (in ns)",
+        label="Standard Deviation (in ns)",
         bounds=(0, 2),
         step=0.01,
         default=0
