@@ -17,7 +17,10 @@ def vis_to_stokes_vis(visibilities, feed_type="linear"):
 
     elif feed_type == "circular":
 
-        raise NotImplementedError("Circular feeds are not yet supported.")
+        stokes_vis["I"] = 0.5 * (visibilities[..., 0] + visibilities[..., 3])
+        stokes_vis["Q"] = 0.5 * (visibilities[..., 1] + visibilities[..., 2])
+        stokes_vis["U"] = 0.5 * (-1j * visibilities[..., 1] + 1j * visibilities[..., 2])
+        stokes_vis["V"] = 0.5 * (visibilities[..., 0] - visibilities[..., 3])
 
     return stokes_vis
 
@@ -36,7 +39,10 @@ def wgt_to_stokes_wgt(weights, feed_type="linear"):
 
     elif feed_type == "circular":
 
-        raise NotImplementedError("Circular feeds are not yet supported.")
+        stokes_weights["I"] = 2 * weights[..., 0]
+        stokes_weights["Q"] = 2 * weights[..., 1]
+        stokes_weights["U"] = 2 * weights[..., 2]
+        stokes_weights["V"] = 2 * weights[..., 3]
 
     return stokes_weights
 

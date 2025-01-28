@@ -57,6 +57,25 @@ class Visibilities(object):
             self.dims["corr"]
         )
 
+        feed_datasets = xds_from_storage_table(
+            str(ms_path) + "::FEED",
+            group_cols="__row__"
+        )
+
+        # We do the following eagerly to reduce graph complexity.
+        unique_feeds = {
+            pt
+            for xds in feed_datasets
+            for pt in xds.POLARIZATION_TYPE.values.ravel()
+        }
+
+        if np.all([feed in "XxYy" for feed in unique_feeds]):
+            self.feed_type = "linear"
+        elif np.all([feed in "LlRr" for feed in unique_feeds]):
+            self.feed_type = "circular"
+        else:
+            raise ValueError("Unsupported feed type/configuration.")
+
         self.set_stokes()  # Set starting stokes params.
 
         self.pix_x, self.pix_y = 512, 512
@@ -65,7 +84,7 @@ class Visibilities(object):
         weights = np.ones(self.dataset.DATA.values.shape, dtype=np.float64)
         flags = np.zeros(self.dataset.DATA.values.shape[:-1], dtype=bool)
 
-        stokes_weight = wgt_to_stokes_wgt(weights)
+        stokes_weight = wgt_to_stokes_wgt(weights, feed_type=self.feed_type)
 
         gridded_weights = timedec(grid_weights)(
             self.dataset.UVW.values,
@@ -108,7 +127,10 @@ class Visibilities(object):
         )
 
         # Update the visibilities.
-        self.stokes_vis = vis_to_stokes_vis(self.dataset.DATA.values)
+        self.stokes_vis = vis_to_stokes_vis(
+            self.dataset.DATA.values,
+            feed_type=self.feed_type
+        )
 
     def grid(self, pol="I"):
 
@@ -127,22 +149,30 @@ class Visibilities(object):
             nthreads=1
         ) / self.wsum
 
-    def set_stokes(self, stokes=(1, 0, 0, 0), feed_type="linear"):
+    def set_stokes(self, stokes=(1, 0, 0, 0),):
 
         self.stokes = stokes
 
-        if feed_type == "linear":
+        if self.feed_type == "linear":
             self.visibility_element = (
                 self.stokes[0] + self.stokes[1],
                 self.stokes[2] + 1j*self.stokes[3],
                 self.stokes[2] - 1j*self.stokes[3],
                 self.stokes[0] - self.stokes[1],
             )
-        elif feed_type == "circular":
-            raise NotImplementedError("Circular feeds are not yet supported.")
+        elif self.feed_type == "circular":
+            self.visibility_element = (
+                self.stokes[0] + self.stokes[3],
+                self.stokes[1] + 1j*self.stokes[2],
+                self.stokes[1] - 1j*self.stokes[2],
+                self.stokes[0] - self.stokes[3],
+            )
         else:
-            raise ValueError(f"Feed type = {feed_type} not understood.")
+            raise ValueError(f"Feed type = {self.feed_type} not understood.")
 
         self.dataset.DATA.values[...] = self.visibility_element
 
-        self.stokes_vis = vis_to_stokes_vis(self.dataset.DATA.values)
+        self.stokes_vis = vis_to_stokes_vis(
+            self.dataset.DATA.values,
+            feed_type=self.feed_type
+        )
