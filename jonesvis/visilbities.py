@@ -70,15 +70,11 @@ class Visibilities(object):
             "corr": self.dataset.sizes["corr"]
         }
 
-        self.jones_shape = (
-            self.dims["time"],
-            self.dims["ant"],
-            self.dims["chan"],
-            1,  # Direction.
-            self.dims["corr"]
-        )
+        antenna_dataset = xds_from_storage_table(str(ms_path) + "::ANTENNA")[0]
+        self.antenna_positions = antenna_dataset.POSITION.values
 
-
+        field_dataset = xds_from_storage_table(str(ms_path) + "::FIELD")[0]
+        self.phase_dir = tuple(field_dataset.PHASE_DIR.values[0, 0])
 
         self.set_stokes()  # Set starting stokes params.
 
