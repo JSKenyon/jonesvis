@@ -36,9 +36,30 @@ class Visibilities(object):
             str(ms_path) + "::SPECTRAL_WINDOW"
         )[0]
 
+        feed_datasets = xds_from_storage_table(
+            str(ms_path) + "::FEED",
+            group_cols="__row__"
+        )
+
+        unique_feeds = {
+            pt
+            for xds in feed_datasets
+            for pt in xds.POLARIZATION_TYPE.values.ravel()
+        }
+
+        if np.all([feed in "XxYy" for feed in unique_feeds]):
+            self.feed_type = "linear"
+            correlations = ["XX", "XY", "YX", "YY"]
+        elif np.all([feed in "LlRr" for feed in unique_feeds]):
+            self.feed_type = "circular"
+            correlations = ["RR", "RL", "LR", "LL"]
+        else:
+            raise ValueError("Unsupported feed type/configuration.")
+
         self.dataset = self.dataset.assign_coords(
             {
-                "chan": (("chan",), spw_dataset.CHAN_FREQ.values[0])
+                "chan": (("chan",), spw_dataset.CHAN_FREQ.values[0]),
+                "corr": (("corr",), correlations)
             }
         )
 
@@ -57,24 +78,7 @@ class Visibilities(object):
             self.dims["corr"]
         )
 
-        feed_datasets = xds_from_storage_table(
-            str(ms_path) + "::FEED",
-            group_cols="__row__"
-        )
 
-        # We do the following eagerly to reduce graph complexity.
-        unique_feeds = {
-            pt
-            for xds in feed_datasets
-            for pt in xds.POLARIZATION_TYPE.values.ravel()
-        }
-
-        if np.all([feed in "XxYy" for feed in unique_feeds]):
-            self.feed_type = "linear"
-        elif np.all([feed in "LlRr" for feed in unique_feeds]):
-            self.feed_type = "circular"
-        else:
-            raise ValueError("Unsupported feed type/configuration.")
 
         self.set_stokes()  # Set starting stokes params.
 

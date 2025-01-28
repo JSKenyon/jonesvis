@@ -33,9 +33,7 @@ class Gain(param.Parameterized):
     )
 
     correlation = param.Selector(
-        label="Correlation",
-        default="XX",
-        objects=["XX", "XY", "YX", "YY"]
+        label="Correlation"
     )
 
     stokes_i = param.Number(
@@ -89,6 +87,9 @@ class Gain(param.Parameterized):
         self.n_ant = self.vis.dataset.ANTENNA2.values.max() + 1
 
         self.param.antenna.bounds = (0, self.n_ant)
+
+        self.param.correlation.objects = self.vis.dataset.corr.values
+        self.param.correlation.default = self.param.correlation.objects[0]
 
         super().__init__(**params)
 
