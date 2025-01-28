@@ -14,11 +14,11 @@ hv.extension('bokeh', width="stretch_both")
 class Gain(param.Parameterized):
 
     vmin = param.Number(
-        label="vmin",
+        label="Intensity Bound (lower)",
         default=-0.1
     )
     vmax = param.Number(
-        label="vmax",
+        label="Intensity Bound (upper)",
         default=0.1
     )
 
