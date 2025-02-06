@@ -6,6 +6,12 @@ from astropy import units as u
 import skyfield.api as sky
 import skyfield.toposlib as skytop
 import skyfield.trigonometry as skytrig
+from skyfield.positionlib import position_of_radec
+
+import numpy as np
+import casacore.measures
+import casacore.quanta as pq
+
 
 def parallactic_angle(ha, dec, lat):
     numer = np.sin(ha)
@@ -24,9 +30,9 @@ def skyfield_parangles(
     n_time = np.unique(times).size
 
     # Create a "Star" object to be the field centre.
-    field_centre = sky.Star(
-        ra=sky.Angle(degrees=field_centre[0]),
-        dec=sky.Angle(degrees=field_centre[1])
+    star = sky.Star(
+        ra=sky.Angle(radians=field_centre[0]),
+        dec=sky.Angle(radians=field_centre[1])
     )
 
     # Our time vlaues are stored time values as MJD in seconds (which is
@@ -50,50 +56,22 @@ def skyfield_parangles(
         for pos in ant_positions_itrf_sf
     ]
 
-    # -------------------------------------------------------------------------
-    
-    # # This is the recommended approach, but it seems to yield large errors.
-    # # Unfortunately I am unsure how to debug it.
-    
-    # apparent_positions = [
-    #     (earth + pos).at(times).observe(field_centre).apparent()
-    #     for pos in ant_positions_geo
-    # ]
-
-    # # Get the zenith for each antenna at each time. This is the part that
-    # # doesn't currently work and which I may be misunderstanding.
-    # zeniths = [
-    #     (earth + pos).at(times).from_altaz(alt_degrees=90, az_degrees=0)
-    #     for pos in ant_positions_geo
-    # ]
-
-    # # The parallactic angle can then be computed as follows (ordering of
-    # # arguments may be incorrect).
-    # parallactic_angles = [
-    #     skytrig.position_angle_of(a.radec(), z.radec())
-    #     for a, z in zip(apparent_positions, zeniths)
-    # ]
-
-    # sf_angles = np.zeros((n_time, n_ant), dtype=np.float64)
-
-    # for a, pa in enumerate(parallactic_angles):
-    #     sf_angles[:, a] = pa.radians
-
-    # -------------------------------------------------------------------------
-
     # This is an alternative, more hands on approach that gives much lower
     # errors. The origin of the discrepancy may be hidden in these details.
 
     sf_angles = np.zeros((n_time, n_ant), dtype=np.float64)
 
-    # Apparent ra and dec of source relative to earth at each time.
-    app_ra, app_dec, _ = \
-        earth.at(times).observe(field_centre).apparent().radec(epoch='date')
-
     # Local apparent sidereal time, per antenna, per time.
     last = [sky.Angle(hours=pos.lst_hours_at(times)) for pos in ant_positions_geo]
 
     for ai in range(n_ant):
+
+        # Apparent ra and dec of source relative to earth at each time.
+        field_centre = \
+            (earth + ant_positions_geo[ai]).at(times).observe(star)
+
+        app_ra, app_dec, _ = field_centre.apparent().radec(epoch=times)
+
         app_ha = sky.Angle(radians=(last[ai].radians - app_ra.radians))
 
         sf_angles[:, ai] = parallactic_angle(
@@ -103,3 +81,55 @@ def skyfield_parangles(
         )
 
     return sf_angles
+
+
+def casa_parangles(time_col, ant_names, ant_positions_ecef,
+                    field_centre, epoch):
+    """Handles the construction of the parallactic angles using measures.
+
+    Args:
+        time_col: Array containing time values for each row.
+        ant_names: Array of antenna names.
+        ant_positions_ecef: Array of antenna positions in ECEF frame.
+        field_centre: Array containing field centre coordinates.
+        epoch: Reference epoch for measures calculations.
+
+    Returns:
+        angles: Array of parallactic angles per antenna per unique time.
+    """
+
+    cms = casacore.measures.measures()
+
+    n_time = time_col.size
+    n_ant = ant_names.size
+
+    # Init angles from receptor angles. TODO: This only works for orthogonal
+    # receptors. The more general case needs them to be kept separate.
+    angles = np.zeros((n_time, n_ant, 2), dtype=np.float64)
+
+    # Assume all antenna are pointed in the same direction.
+    field_centre = \
+        cms.direction(epoch, *(pq.quantity(fi, 'rad') for fi in field_centre))
+
+    unique_times = np.unique(time_col)
+    n_utime = unique_times.size
+    angles = np.zeros((n_utime, n_ant, 2), dtype=np.float64)
+
+    zenith_azel = cms.direction(
+        "AZEL", *(pq.quantity(fi, 'deg') for fi in (0, 90))
+    )
+
+    ant_positions_itrf = [
+        cms.position(
+            'WGS84', *(pq.quantity(p, 'm') for p in pos)
+        ) for pos in ant_positions_ecef
+    ]
+
+    for ti, t in enumerate(unique_times):
+        cms.do_frame(cms.epoch("UTC", pq.quantity(t, 's')))
+        for rpi, rp in enumerate(ant_positions_itrf):
+            cms.do_frame(rp)
+            angles[ti, rpi, :] += \
+                cms.posangle(field_centre, zenith_azel).get_value("rad")
+
+    return angles
