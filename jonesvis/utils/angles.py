@@ -38,6 +38,12 @@ def skyfield_parangles(
     # Our time vlaues are stored time values as MJD in seconds (which is
     # weird). This example avoids the problem by working with datetimes.
     ts = sky.load.timescale()
+    # from skyfield.data import iers
+    # url = sky.load.build_url('finals2000A.all')
+    # with sky.load.open(url) as f:
+    #     finals_data = iers.parse_x_y_dut1_from_finals_all(f)
+    # iers.install_polar_motion_table(ts, finals_data)    
+    
     apy_times = Time(times*u.s, format='mjd', scale='utc')
     times = ts.from_astropy(apy_times)
 
@@ -121,9 +127,18 @@ def casa_parangles(time_col, ant_names, ant_positions_ecef,
 
     ant_positions_itrf = [
         cms.position(
-            'WGS84', *(pq.quantity(p, 'm') for p in pos)
+            'itrf', *(pq.quantity(p, 'm') for p in pos)
         ) for pos in ant_positions_ecef
     ]
+
+    # ant_positions_itrf = [
+    #     cms.position(
+    #         'wgs84',
+    #         pq.quantity(pos.longitude.radians, 'rad'),
+    #         pq.quantity(pos.latitude.radians, 'rad'),
+    #         pq.quantity(pos.elevation.m, 'm')
+    #     ) for pos in ant_positions_geo
+    # ]
 
     for ti, t in enumerate(unique_times):
         cms.do_frame(cms.epoch("UTC", pq.quantity(t, 's')))
@@ -133,3 +148,53 @@ def casa_parangles(time_col, ant_names, ant_positions_ecef,
                 cms.posangle(field_centre, zenith_azel).get_value("rad")
 
     return angles
+
+
+def astropy_parangles(
+    times,
+    ant_positions_ecef,
+    field_centre
+):
+
+    from astropy.coordinates import ICRS, SkyCoord, EarthLocation, TETE
+    from astropy import units as u
+    from astropy import coordinates as ac
+    from astropy.time import Time
+    from astroplan import Observer
+
+    n_ant = ant_positions_ecef.shape[0]
+
+    target = ICRS(ra=field_centre[0]*u.rad, dec=field_centre[1]*u.rad)
+
+    target = SkyCoord(ra=field_centre[0]*u.rad, dec=field_centre[1]*u.rad, frame="icrs")
+
+    # MS stores time values as MJD in seconds (which is weird). This lets us
+    # get the correct times.
+    times = Time(times*u.s, format='mjd', scale='utc')  # TODO: Validate!
+
+    _ant_positions_itrf = [
+        EarthLocation.from_geocentric(
+            pos[0]*u.m,
+            pos[1]*u.m,
+            pos[2]*u.m,
+        )
+        for pos in ant_positions_ecef
+    ]
+
+    target = target.transform_to(TETE(obstime=times))
+
+    observers = [Observer(location=loc) for loc in _ant_positions_itrf]
+
+    # Kind can be mean or apparent - mean agrees more closely with skyfield.
+    parangs = [obs.parallactic_angle(times, target, kind="mean") for obs in observers]
+
+    # target_altaz = [target.transform_to(AltAz(obstime=times, location=loc))
+    #                 for loc in _ant_positions_itrf]
+    # target_app = [taz.transform_to(FK5(equinox=times)) for taz in target_altaz]
+
+    ap_angles = np.zeros((len(times), n_ant, 2), dtype=np.float64)
+
+    for ai in range(n_ant):
+        ap_angles[:, ai] = parangs[ai].value[None, :, None]
+
+    return ap_angles
