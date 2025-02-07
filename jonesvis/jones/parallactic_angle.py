@@ -71,40 +71,30 @@ class ParallacticAngle(Gain):
         # Shift times i.e. change start of observation.
         times += self.time_shift * 60
 
-        parangles = skyfield_parangles(times, antenna_positions, phase_dir)
-
-        foo = casa_parangles(
-            times,
-            np.arange(nant),
-            antenna_positions,
-            phase_dir,
-            "J2000"
-        )[..., 0]
-
-        baz = astropy_parangles(times, antenna_positions, phase_dir)[..., 0]
+        pa_sf = skyfield_parangles(times, antenna_positions, phase_dir)
+        pa_casa = casa_parangles(times, antenna_positions, phase_dir)
+        pa_apy = astropy_parangles(times, antenna_positions, phase_dir)
 
         print("sf - casa")
-        compare_parangles(parangles, foo)
+        compare_parangles(pa_sf, pa_casa)
         print("sf - apy")
-        compare_parangles(parangles, baz)
+        compare_parangles(pa_sf, pa_apy)
         print("apy - casa")
-        compare_parangles(baz, foo)
-
-        import ipdb; ipdb.set_trace()
+        compare_parangles(pa_apy, pa_casa)
 
         jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
 
         for p in range(nant):
             if self.vis.feed_type == "circular":
-                jones[:, :, p, 0, 0] = np.exp(1j * parangles[:, p])[:, None]
-                jones[:, :, p, 0, 3] = np.exp(-1j * parangles[:, p])[:, None]
+                jones[:, :, p, 0, 0] = np.exp(1j * pa_sf[:, p])[:, None]
+                jones[:, :, p, 0, 3] = np.exp(-1j * pa_sf[:, p])[:, None]
             else:
-                jones[:, :, p, 0, 0] = np.cos(parangles[:, p])[:, None]
-                jones[:, :, p, 0, 1] = np.sin(parangles[:, p])[:, None]
-                jones[:, :, p, 0, 2] = -np.sin(parangles[:, p])[:, None]
-                jones[:, :, p, 0, 3] = np.cos(parangles[:, p])[:, None]
+                jones[:, :, p, 0, 0] = np.cos(pa_sf[:, p])[:, None]
+                jones[:, :, p, 0, 1] = np.sin(pa_sf[:, p])[:, None]
+                jones[:, :, p, 0, 2] = -np.sin(pa_sf[:, p])[:, None]
+                jones[:, :, p, 0, 3] = np.cos(pa_sf[:, p])[:, None]
 
-        self.paranagles = parangles
+        self.paranagles = pa_sf
         self.gains = jones
         self.scaled_times = times
 
