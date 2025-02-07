@@ -6,22 +6,14 @@ from astropy import units as u
 import skyfield.api as sky
 import skyfield.toposlib as skytop
 import skyfield.trigonometry as skytrig
-from skyfield.positionlib import position_of_radec
 
-from astropy.coordinates import ICRS, SkyCoord, EarthLocation, TETE
+from astropy.coordinates import SkyCoord, EarthLocation, TETE
 from astropy import units as u
 from astropy.time import Time
 from astroplan import Observer
 
 import casacore.measures
 import casacore.quanta as pq
-
-
-def parallactic_angle(ha, dec, lat):
-    numer = np.sin(ha)
-    denom = np.cos(dec) * np.tan(lat) - np.sin(dec) * np.cos(ha)
-
-    return np.arctan2(numer, denom)
 
 
 def skyfield_parangles(
@@ -42,11 +34,6 @@ def skyfield_parangles(
     # Our time vlaues are stored time values as MJD in seconds (which is
     # weird). This example avoids the problem by working with datetimes.
     ts = sky.load.timescale()
-    # from skyfield.data import iers
-    # url = sky.load.build_url('finals2000A.all')
-    # with sky.load.open(url) as f:
-    #     finals_data = iers.parse_x_y_dut1_from_finals_all(f)
-    # iers.install_polar_motion_table(ts, finals_data)    
     
     apy_times = Time(times*u.s, format='mjd', scale='utc')
     times = ts.from_astropy(apy_times)
@@ -69,23 +56,6 @@ def skyfield_parangles(
     sf_angles = np.zeros((n_time, n_ant), dtype=np.float64)
 
     for ai in range(n_ant):
-
-        # field_centre = \
-        #     (earth + ant_positions_geo[ai]).at(times).observe(star).apparent()
-
-        # # Apparent ra and dec of source relative to earth at each time.
-        # app_ra, app_dec, _ = field_centre.radec(epoch=times)
-
-        # # Local apparent sidereal time, per antenna, per time.
-        # last = sky.Angle(hours=ant_positions_geo[ai].lst_hours_at(times))
-
-        # app_ha = sky.Angle(radians=(last.radians - app_ra.radians))
-
-        # sf_angles[:, ai] = parallactic_angle(
-        #     app_ha.radians,
-        #     app_dec.radians,
-        #     ant_positions_geo[ai].latitude.radians
-        # )
 
         pos_at_time = ant_positions_geo[ai].at(times)
 

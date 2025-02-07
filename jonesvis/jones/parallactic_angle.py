@@ -6,26 +6,15 @@ import param
 import panel as pn
 
 from jonesvis.jones.base import Gain
-from jonesvis.utils.angles import skyfield_parangles, casa_parangles,astropy_parangles
+from jonesvis.utils.angles import (
+    skyfield_parangles,
+    casa_parangles,
+    astropy_parangles
+)
 
 pn.config.throttled = True  # Throttle all sliders.
 
 hv.extension('bokeh', width="stretch_both")
-
-
-def compare_parangles(parangs0, parangs1):
-
-    import skyfield.api as sky
-
-    parangle_diff = np.abs(np.angle(np.exp(1j * (parangs0 - parangs1))))
-
-    max_diff = sky.Angle(radians=parangle_diff.max()).arcseconds()
-    min_diff = sky.Angle(radians=parangle_diff.min()).arcseconds()
-    mean_diff = sky.Angle(radians=parangle_diff.mean()).arcseconds()
-
-    print(f"Max abs difference in arcsec: {max_diff}")
-    print(f"Min abs difference in arcsec: {min_diff}")
-    print(f"Mean abs difference in arcsec: {mean_diff}")
 
 
 class ParallacticAngle(Gain):
@@ -75,13 +64,6 @@ class ParallacticAngle(Gain):
         pa_casa = casa_parangles(times, antenna_positions, phase_dir)
         pa_apy = astropy_parangles(times, antenna_positions, phase_dir)
 
-        print("sf - casa")
-        compare_parangles(pa_sf, pa_casa)
-        print("sf - apy")
-        compare_parangles(pa_sf, pa_apy)
-        print("apy - casa")
-        compare_parangles(pa_apy, pa_casa)
-
         jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
 
         for p in range(nant):
@@ -108,7 +90,14 @@ class ParallacticAngle(Gain):
         corr_idx = self.param.correlation.objects.index(self.correlation)
 
         selected_gains = self.gains[:, :, self.antenna, 0, corr_idx]
-        phase = np.rad2deg(np.angle(selected_gains))
+        if self.vis.feed_type == "circular":
+            surf = np.rad2deg(np.angle(selected_gains))
+            surf_clabel = "Phase (deg)"
+            surf_title = "Phase Surface"
+        else:
+            surf = selected_gains.real
+            surf_clabel = "Amplitude"
+            surf_title = "Amplitude Surface"
         parangles = np.rad2deg(self.paranagles[:, self.antenna])
 
         plots = [
@@ -127,16 +116,16 @@ class ParallacticAngle(Gain):
                 (
                     self.freqs,
                     self.scaled_times,
-                    phase
+                    surf
                 )
             ).opts(
                 responsive=True,
                 colorbar=True,
-                title="Phase Surface",
+                title=surf_title,
                 xlabel="Frequency",
                 ylabel="Time",
-                clim=(phase.min(), phase.max()),
-                clabel="Phase (deg)",
+                clim=(surf.min(), surf.max()),
+                clabel=surf_clabel,
                 xticks=[
                     self.freqs.min(),
                     self.freqs.mean(),

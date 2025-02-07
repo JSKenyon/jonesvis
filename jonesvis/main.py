@@ -60,7 +60,7 @@ class JonesVisualiser(param.Parameterized):
 
     gain_type = param.Selector(
         label="Gain Type",
-        default="parallactic_angle",
+        # default="parallactic_angle",
         objects=list(JONES_TYPES.keys())
     )
 
