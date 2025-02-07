@@ -6,17 +6,33 @@ import param
 import panel as pn
 
 from jonesvis.jones.base import Gain
-from jonesvis.utils.angles import skyfield_parangles
+from jonesvis.utils.angles import skyfield_parangles, casa_parangles,astropy_parangles
 
 pn.config.throttled = True  # Throttle all sliders.
 
 hv.extension('bokeh', width="stretch_both")
 
+
+def compare_parangles(parangs0, parangs1):
+
+    import skyfield.api as sky
+
+    parangle_diff = np.abs(np.angle(np.exp(1j * (parangs0 - parangs1))))
+
+    max_diff = sky.Angle(radians=parangle_diff.max()).arcseconds()
+    min_diff = sky.Angle(radians=parangle_diff.min()).arcseconds()
+    mean_diff = sky.Angle(radians=parangle_diff.mean()).arcseconds()
+
+    print(f"Max abs difference in arcsec: {max_diff}")
+    print(f"Min abs difference in arcsec: {min_diff}")
+    print(f"Mean abs difference in arcsec: {mean_diff}")
+
+
 class ParallacticAngle(Gain):
 
     time_shift = param.Number(
         label="Time shift (min)",
-        bounds=(0, 24 * 60),
+        bounds=(-12*60, 12 * 60),
         step=10,
         default=0
     )
@@ -48,13 +64,33 @@ class ParallacticAngle(Gain):
         antenna_positions = self.vis.antenna_positions
         phase_dir = self.vis.phase_dir
 
-        # Dilate times i.e. increase length of integration.
-        times[1:] = times[0] + np.cumsum(self.time_dilation * np.diff(times))
+        # Dilate times to increase time converage.
+        mid_time = (times[0] + times[-1]) / 2
+        times = (times - mid_time) * self.time_dilation + mid_time
 
         # Shift times i.e. change start of observation.
         times += self.time_shift * 60
 
         parangles = skyfield_parangles(times, antenna_positions, phase_dir)
+
+        foo = casa_parangles(
+            times,
+            np.arange(nant),
+            antenna_positions,
+            phase_dir,
+            "J2000"
+        )[..., 0]
+
+        baz = astropy_parangles(times, antenna_positions, phase_dir)[..., 0]
+
+        print("sf - casa")
+        compare_parangles(parangles, foo)
+        print("sf - apy")
+        compare_parangles(parangles, baz)
+        print("apy - casa")
+        compare_parangles(baz, foo)
+
+        import ipdb; ipdb.set_trace()
 
         jones = np.zeros((ntime, nchan, nant, 1, 4), dtype=np.complex128)
 

@@ -58,7 +58,7 @@ def skyfield_parangles(
     # Convert ITRS positions into geographic positions.
     t = times[0]  # Time is irrelevant here, but is a required input.
     ant_positions_geo = [
-        sky.wgs84.geographic_position_of(pos.at(t))
+        sky.iers2010.geographic_position_of(pos.at(t))
         for pos in ant_positions_itrf_sf
     ]
 
@@ -67,24 +67,44 @@ def skyfield_parangles(
 
     sf_angles = np.zeros((n_time, n_ant), dtype=np.float64)
 
-    # Local apparent sidereal time, per antenna, per time.
-    last = [sky.Angle(hours=pos.lst_hours_at(times)) for pos in ant_positions_geo]
-
     for ai in range(n_ant):
 
-        # Apparent ra and dec of source relative to earth at each time.
         field_centre = \
-            (earth + ant_positions_geo[ai]).at(times).observe(star)
+            (earth + ant_positions_geo[ai]).at(times).observe(star).apparent()
 
-        app_ra, app_dec, _ = field_centre.apparent().radec(epoch=times)
+        # Apparent ra and dec of source relative to earth at each time.
+        app_ra, app_dec, _ = field_centre.radec(epoch=times)
 
-        app_ha = sky.Angle(radians=(last[ai].radians - app_ra.radians))
+        # Local apparent sidereal time, per antenna, per time.
+        last = sky.Angle(hours=ant_positions_geo[ai].lst_hours_at(times))
+
+        app_ha = sky.Angle(radians=(last.radians - app_ra.radians))
 
         sf_angles[:, ai] = parallactic_angle(
             app_ha.radians,
             app_dec.radians,
             ant_positions_geo[ai].latitude.radians
         )
+
+        # zenith = ant_positions_geo[ai].at(times).from_altaz(alt_degrees=90.0, az_degrees=0.0)
+
+        # # Apparent ra and dec of source relative to earth at each time.
+        # field_centre = \
+        #     (earth + ant_positions_geo[ai]).at(times).observe(star).apparent()
+
+        # pa = skytrig.position_angle_of(
+        #     field_centre.radec(epoch=times),
+        #     zenith.radec(epoch=times),
+        # )
+
+        # if ai == 0:
+        #     global sfzenith, sffield, sftimes
+        #     sfzenith = zenith
+        #     sffield = field_centre
+        #     sftimes = times
+
+        # # Ensure we are in (-np.pi, np.pi).
+        # sf_angles[:, ai] = np.atan2(np.sin(pa.radians), np.cos(pa.radians))
 
     return sf_angles
 
@@ -122,7 +142,7 @@ def casa_parangles(time_col, ant_names, ant_positions_ecef,
     angles = np.zeros((n_utime, n_ant, 2), dtype=np.float64)
 
     zenith_azel = cms.direction(
-        "AZEL", *(pq.quantity(fi, 'deg') for fi in (0, 90))
+        "AZELGEO", *(pq.quantity(fi, 'deg') for fi in (0, 90))
     )
 
     ant_positions_itrf = [
@@ -131,21 +151,13 @@ def casa_parangles(time_col, ant_names, ant_positions_ecef,
         ) for pos in ant_positions_ecef
     ]
 
-    # ant_positions_itrf = [
-    #     cms.position(
-    #         'wgs84',
-    #         pq.quantity(pos.longitude.radians, 'rad'),
-    #         pq.quantity(pos.latitude.radians, 'rad'),
-    #         pq.quantity(pos.elevation.m, 'm')
-    #     ) for pos in ant_positions_geo
-    # ]
-
     for ti, t in enumerate(unique_times):
         cms.do_frame(cms.epoch("UTC", pq.quantity(t, 's')))
         for rpi, rp in enumerate(ant_positions_itrf):
             cms.do_frame(rp)
+            app_field_centre = cms.measure(field_centre, "APP")
             angles[ti, rpi, :] += \
-                cms.posangle(field_centre, zenith_azel).get_value("rad")
+                cms.posangle(app_field_centre, zenith_azel).get_value("rad")
 
     return angles
 
