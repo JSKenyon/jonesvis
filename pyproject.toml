@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jonesvis"
-version = "0.0.0"
+version = "0.0.1"
 description = "Visualiser for Jones terms and their effects."
 repository = "https://github.com/JSKenyon/jonesvis"
 # documentation = "https://quartical.readthedocs.io"
