@@ -30,6 +30,7 @@ dask = {extras = ["dataframe"], version = ">=2024.10.0"}
 ducc0 = ">= 0.36.0"
 numba = ">=0.60.0"
 skyfield = ">=1.49"
+astropy = ">=6.1.7"
 
 [tool.poetry.scripts]
 jonesvis = 'jonesvis.main:main'
