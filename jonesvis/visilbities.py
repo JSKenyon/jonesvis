@@ -15,8 +15,6 @@ from jonesvis.utils.gridding import (
 )
 from jonesvis.utils.gains import nb_apply_gains
 
-from timedec import timedec
-
 
 class Visibilities(object):
 
@@ -86,7 +84,7 @@ class Visibilities(object):
 
         stokes_weight = wgt_to_stokes_wgt(weights, feed_type=self.feed_type)
 
-        gridded_weights = timedec(grid_weights)(
+        gridded_weights = grid_weights(
             self.dataset.UVW.values,
             self.dataset.chan.values,
             (~flags).astype(np.uint8),
@@ -99,7 +97,7 @@ class Visibilities(object):
             ngrid=1
         )
 
-        self.img_weight = timedec(imaging_weights)(
+        self.img_weight = imaging_weights(
             gridded_weights,
             self.dataset.UVW.values,
             self.dataset.chan.values,
@@ -134,7 +132,7 @@ class Visibilities(object):
 
     def grid(self, pol="I"):
 
-        return timedec(wgridder.vis2dirty)(
+        return wgridder.vis2dirty(
             uvw=self.dataset.UVW.values,
             freq=self.dataset.chan.values,
             vis=self.stokes_vis[pol],
