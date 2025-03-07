@@ -22,13 +22,13 @@ class DiagComplex(Gain):
     )
     amp_length_scale_time = param.Number(
         label="Amplitude Length Scale (Time)",
-        bounds=(0.01, 1),
+        bounds=(0.01, 2),
         step=0.01,
         default=0.2
     )
     amp_length_scale_freq = param.Number(
         label="Amplitude Length Scale (Frequency)",
-        bounds=(0.01, 1),
+        bounds=(0.01, 2),
         step=0.01,
         default=0.1
     )
@@ -41,13 +41,13 @@ class DiagComplex(Gain):
     )
     phase_length_scale_time = param.Number(
         label="Phase Length Scale (Time)",
-        bounds=(0.01, 1),
+        bounds=(0.01, 2),
         step=0.01,
         default=0.2
     )
     phase_length_scale_freq = param.Number(
         label="Phase Length Scale (Frequency)",
-        bounds=(0.01, 1),
+        bounds=(0.01, 2),
         step=0.01,
         default=0.1
     )
@@ -133,7 +133,7 @@ class DiagComplex(Gain):
         corr_idx = self.param.correlation.objects.index(self.correlation)
 
         selected_gains = self.gains[:, :, self.antenna, 0, corr_idx]
-        amp = np.abs(selected_gains)
+        amp = np.round(np.abs(selected_gains), 10)
         phase =  np.rad2deg(np.angle(selected_gains))
 
         plots = [
